@@ -1,0 +1,6 @@
+{
+  "name": "hyperframes",
+  "version": "0.9.81",
+  "description": "HyperFrames skills bundled inside the motion-graphics plugin for DeepSeek Harness. The manifest pins this bundle's CLI release to the version of the bundled skills. Source: https://github.com/heygen-com/hyperframes (Apache-2.0).",
+  "license": "Apache-2.0"
+}

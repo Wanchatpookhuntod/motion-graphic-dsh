@@ -1,0 +1,29 @@
+{
+  "name": "@local/motion-graphics",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Motion graphics toolkit for DeepSeek Harness: narration script, drawn SVG visuals, composed music bed and HyperFrames HTML-to-MP4 compositions, bundled as installable skills.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "plugin.json",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "skills",
+    "README.md",
+    "ATTRIBUTION.md",
+    "LICENSES"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

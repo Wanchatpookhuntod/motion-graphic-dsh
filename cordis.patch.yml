@@ -1,0 +1,3 @@
+- insert:
+    - id: motion-graphics
+      name: '@local/motion-graphics'

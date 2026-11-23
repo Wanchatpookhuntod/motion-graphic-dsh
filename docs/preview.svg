@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300">
+  <!-- Storyboard: three planned scenes -->
+  <rect x="40" y="40" width="164" height="112" rx="8" fill="none" stroke="#A9C4F2" stroke-width="3"/>
+  <circle cx="104" cy="86" r="22" fill="none" stroke="#2F6FED" stroke-width="3"/>
+  <line x1="66" y1="124" x2="132" y2="124" stroke="#2F6FED" stroke-width="3" stroke-linecap="round"/>
+  <line x1="66" y1="136" x2="112" y2="136" stroke="#A9C4F2" stroke-width="3" stroke-linecap="round"/>
+
+  <rect x="238" y="40" width="164" height="112" rx="8" fill="none" stroke="#A9C4F2" stroke-width="3"/>
+  <line x1="276" y1="118" x2="276" y2="86" stroke="#2F6FED" stroke-width="10" stroke-linecap="round"/>
+  <line x1="306" y1="118" x2="306" y2="70" stroke="#2F6FED" stroke-width="10" stroke-linecap="round"/>
+  <line x1="336" y1="118" x2="336" y2="98" stroke="#2F6FED" stroke-width="10" stroke-linecap="round"/>
+  <line x1="366" y1="118" x2="366" y2="58" stroke="#2F6FED" stroke-width="10" stroke-linecap="round"/>
+
+  <rect x="436" y="40" width="164" height="112" rx="8" fill="none" stroke="#A9C4F2" stroke-width="3"/>
+  <path d="M498 74 L556 96 L498 118 Z" fill="#2F6FED"/>
+
+  <!-- Timeline with clips and a playhead -->
+  <rect x="40" y="196" width="560" height="56" rx="8" fill="none" stroke="#2F6FED" stroke-width="3"/>
+  <rect x="56" y="212" width="104" height="24" rx="5" fill="#A9C4F2"/>
+  <rect x="176" y="212" width="168" height="24" rx="5" fill="#2F6FED"/>
+  <rect x="360" y="212" width="88" height="24" rx="5" fill="#A9C4F2"/>
+  <rect x="464" y="212" width="120" height="24" rx="5" fill="#2F6FED"/>
+  <line x1="264" y1="184" x2="264" y2="268" stroke="#0F3D91" stroke-width="4" stroke-linecap="round"/>
+  <path d="M254 180 L274 180 L264 192 Z" fill="#0F3D91"/>
+
+  <!-- Waveform accent -->
+  <path d="M40 282 q14 -14 28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0 t28 0" fill="none" stroke="#A9C4F2" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
