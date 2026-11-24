@@ -44,3 +44,11 @@ for them; all rights are reserved by the owner. `references/script-style.md`,
 `scripts/make_music.mjs` come from the owner's own `script-writing` skill; the
 `.mjs` tools are Node ports of the original Python/NumPy scripts, which remain in
 `scripts/` for reference.
+
+## Test copy changes (motion-graphic-dsh-fast)
+
+- `skills/motion-graphics/references/creative/house-style.md`, `video-composition.md`, `data-in-motion.md` and `skills/motion-graphics/references/palettes/*.md` are copied **unmodified** from the `hyperframes-creative` skill of the HyperFrames project (<https://github.com/heygen-com/hyperframes>, Apache-2.0), taken from the copy installed in `~/.agents/skills` on the build machine. Confirm the licence of that skill folder upstream before publishing.
+
+- `skills/hyperframes/SKILL.md` and `skills/hyperframes-cli/SKILL.md` are **modified** from upstream: the launcher line points at `motion-graphics/scripts/hf.mjs`, and the usage beacon and `usage --json` instructions are removed. Apache-2.0 requires stating that these files were changed.
+- `skills/motion-graphics/assets/fonts/Kanit-Regular.ttf`, `Kanit-Bold.ttf`: Kanit by Cadson Demak, SIL Open Font License 1.1. License text: `LICENSES/OFL-Kanit.txt`.
+- `docs/art-original.md` is the previous `references/art.md`, kept for comparison only; no skill reads it.

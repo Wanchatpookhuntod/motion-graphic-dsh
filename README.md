@@ -14,11 +14,13 @@ Three skills, registered on `ctx.skills` by the bundle's Host plugin:
 
 | Skill | Use |
 |---|---|
-| `motion-graphics` | The pipeline: brief, script, picture plan, music, build, check, preview, render hand-off. Start here. |
-| `hyperframes` | The composition contract and work loop (HTML → video), bundled unmodified. |
-| `hyperframes-cli` | Every CLI command, `--json`, timeline edits, recovery, bundled unmodified. |
+| `mg-fast` | The pipeline: design direction, storyboard, build, check, preview, render hand-off, with a short path for clips of 20 s or less. Start here. Folder: `skills/motion-graphics`. |
+| `mg-hyperframes` | The composition contract and work loop (HTML → video); launcher and beacon lines modified, see `ATTRIBUTION.md`. |
+| `mg-hyperframes-cli` | Every CLI command, `--json`, timeline edits, recovery; launcher and beacon lines modified. |
 
 Nothing else is added: no tools, no UI, no client code, no settings.
+
+The three skills carry an `mg-` prefix so they are not shadowed by the standalone HyperFrames skills (`motion-graphics`, `hyperframes`, `hyperframes-cli`) when those are installed in `~/.agents/skills`. Name the skill in the request ("ใช้ skill mg-fast ทำ…") to be sure the agent loads this one.
 
 ## Requirements on the target machine
 
@@ -29,7 +31,7 @@ bundle only uses the `ctx.skills` provider API.
 |---|---|---|
 | Node.js 22+ | Runs the CLI launcher (`node …/scripts/hf.mjs`) | Install Node.js LTS |
 | FFmpeg | Rendering and probing MP4; `snapshot` uses it too | The launcher installs it on request (`hf.mjs doctor --install-ffmpeg`); manual: macOS `brew install ffmpeg`, Windows `winget install Gyan.FFmpeg`, Debian/Ubuntu `sudo apt install ffmpeg` |
-| Network (first run only) | `npx` downloads the pinned HyperFrames CLI and a headless Chrome into the project's `.hf-cache` | Connect once; later runs are offline |
+| Network (first run only) | `npx` downloads the pinned HyperFrames CLI and a headless Chrome into the shared per-user cache (`<tools>/cache`) | Connect once; later runs are offline |
 
 No Python and no NumPy: the script and music tools are plain Node
 (`scripts/txt_to_json.mjs`, `scripts/make_music.mjs`). The original Python
@@ -155,9 +157,10 @@ node "<plugin>/skills/motion-graphics/scripts/hf.mjs" preview --background
 node "<plugin>/skills/motion-graphics/scripts/hf.mjs" preview --status
 ```
 
-The launcher keeps npm, Chrome, history and temporary files inside
-`<project>/.hf-cache` — a DSH shell sandbox can write the workspace but not the
-home folder — and turns Chrome's sandbox off. It delegates to the bundled
+The launcher keeps npm, Chrome, history and temporary files in one per-user cache
+(`<tools>/cache`) shared by every project, falling back to `<project>/.hf-cache`
+when a sandbox cannot write there, and turns Chrome's sandbox off. After the first
+download it starts the installed CLI directly instead of going through `npx`. It delegates to the bundled
 HyperFrames launcher, and the bundle's `plugin.json` pins the CLI release to
 **0.9.81**, the same release the bundled skills document, so the instructions and
 the CLI cannot drift apart. `skills` subcommands are therefore refused through
@@ -182,7 +185,7 @@ the user explicitly asks (render / เรนเดอร์ / เอาวิด
 - Plugin files: this folder (treat it as read-only while installed).
 - Project files: whatever directory the project was created in — copy that
   folder to another machine and the project still opens.
-- Caches: `<project>/.hf-cache`, `<project>/.hyperframes`, or `HF_CACHE_DIR`.
+- Caches: `<tools>/cache` (shared), `<project>/.hyperframes`, or `HF_CACHE_DIR`.
 - No configuration keys and no credentials.
 
 ## Remove
@@ -194,5 +197,5 @@ rendered files stay where they are.
 ## License and attribution
 
 The bundle's own code and guides are private, unpublished work. The two
-HyperFrames skills are copied unmodified from the HyperFrames project
+HyperFrames skills are copied from the HyperFrames project, with the changes listed in `ATTRIBUTION.md`,
 (Apache-2.0); see `ATTRIBUTION.md` and `LICENSES/Apache-2.0.txt`.

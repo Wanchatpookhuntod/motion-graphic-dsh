@@ -29,17 +29,15 @@ true peak `-1.0 dBTP`) — the same recipe at 7 s also worked.
    | playful, education for kids, social | `bright` | 104 | G or A |
 
 3. **Generate:** `node scripts/make_music.mjs music.wav --dur 30 --mood warm --key D`
-4. **Measure** (never trust it blind): `ffmpeg -i music.wav -af ebur128=peak=true -f null -`
-   and `astats=metadata=1:reset=0`. The raw render typically lands -14 to -17 LUFS; that is
-   fine, the loudnorm pass in step 5 sets the delivery level. Targets for the delivered mix:
-   **-16 LUFS** for a bed under narration, **-14 LUFS** standalone, true peak **≤ -1 dBTP**,
-   zero clipped samples.
-5. **Mux** with a loudness pass so the delivery is predictable:
-   ```bash
-   ffmpeg -y -i video.mp4 -i music.wav -map 0:v:0 -map 1:a:0 -c:v copy \
-     -c:a aac -b:a 192k -ar 48000 -af "loudnorm=I=-16:TP=-2:LRA=9" \
-     -shortest -movflags +faststart out.mp4
+4. **Place it in the composition**, never mux it into a render: write the file to `assets/music.wav` and add
+   ```html
+   <audio id="music" src="assets/music.wav" data-start="0" data-duration="30" data-volume="1"></audio>
    ```
+   to `index.html`. `data-volume` 1 for a bed on its own, about 0.15 under a voice. The preview plays
+   it and a later render includes it; nothing has to be rendered to hear it.
+5. **Measure only when FFmpeg is already on the machine** (optional on a clip of 20 s or less):
+   `ffmpeg -i assets/music.wav -af ebur128=peak=true -f null -`. The script's output typically lands
+   -14 to -17 LUFS with a true peak near -1 dBTP; report what you measured, or say it was not measured.
 
 ## How the bed is built (the recipe)
 
@@ -48,7 +46,7 @@ true peak `-1.0 dBTP`) — the same recipe at 7 s also worked.
 | Pad | additive sines at f, 2f, 3f (1, 0.20, 0.05), attack ~1 s, exponential release; voices lean L/R by a few % | gives harmony without a sample library; slow attack keeps it out of the way of speech |
 | Bass | sine + weak 2nd harmonic, decay 0.30 s, beats 1 and 3, at the **chord root's own octave** (D3/B2/G2/A2) | a real bass note, not sub-bass: laptops cannot reproduce 30 Hz but will still clip on it |
 | Melody | 9-note pentatonic ladder (D4…A5), khim-like pluck (sines + 2f + 3f, `exp(-t/0.26)`), 8th-note motif with rests, velocity 0.72–1.0 | pentatonic never clashes with the pad; plucking reads as "warm", and the rests keep it from turning into a ringtone |
-| Shaker | white noise → `np.diff` (cheap high-pass) → 9 ms envelope, every 8th, accents on downbeats | keeps time without a drum kit |
+| Shaker | white noise → first difference (cheap high-pass) → 9 ms envelope, every 8th, accents on downbeats | keeps time without a drum kit |
 | Bells | 3 partials (1, 2.76, 5.40) with different decays, at 40 % and 68 % of the length | two moments of colour; place them on real beats |
 | Reverb | FFT convolution with a synthetic IR (noise × `exp(-t/0.40)`, 1.2 s), wet 0.16, decorrelated L/R | glue; more than ~0.25 wet turns to mush |
 | Limiter | `tanh(x*1.1)/tanh(1.1)`, then normalise to 0.89 peak | no hard clipping, no pumping |
@@ -89,12 +87,11 @@ bar starts are `0, 2.73, 5.45, 8.18, 10.91, 13.64, 16.36, 19.09, 21.82, 24.55, 2
 
 ## QA you can do without hearing the file
 
-1. **Loudness + peaks** — `ebur128` integrated LUFS, true peak; `astats` peak/RMS per channel.
-2. **Per-second RMS curve** — confirms the fades and that no second is silent or spiking.
-3. **Clipping count** — `(np.abs(x) > 0.999).sum()` must be 0 in the 16-bit file.
-4. **Structure** — a log-frequency spectrogram should show horizontal pad bands and vertical
-   pluck stripes; a flat white wall means noise is dominating.
-5. **Band balance** — low end should not sit 15 dB above the mids.
+1. **Length** — the script prints the duration; it must equal the root's `data-duration`.
+2. **Loudness + peaks** — the `ebur128` line above, when FFmpeg is present.
+3. **In the composition** — `check --json` reports an `<audio>` without an `id` or a missing file.
+
+No Python, NumPy or spectrogram is needed; do not install anything to check a bed.
 
 State plainly what was not checked: nobody listened, so musicality and taste are unverified.
 Offer the user a listen and a re-synthesis with different `--mood` / `--bpm` / `--key`.
@@ -105,10 +102,8 @@ Offer the user a listen and a re-synthesis with different `--mood` / `--bpm` / `
   the project README so the bed can be rebuilt after an edit.
 - **No copyrighted material, no samples, no music AI service** in this pipeline — say the
   bed is synthetic when you deliver it.
-- Keep the WAV (44.1 kHz, 16-bit, stereo) as the master and mux a 48 kHz AAC copy for the
-  video; if a voice-over is added later, drop the bed to **-18 LUFS** and duck it under speech.
-- If the user supplies a real track, keep the same file name and mux step so nothing else
-  in the project changes.
+- Keep the WAV (44.1 kHz, 16-bit, stereo) as the master in `assets/`; under a voice-over set `data-volume` to about 0.15.
+- If the user supplies a real track, keep the same file name so nothing else in the project changes.
 
 ## Checklist
 
@@ -118,5 +113,5 @@ Offer the user a listen and a re-synthesis with different `--mood` / `--bpm` / `
 - [ ] Per-layer RMS balanced; melody above pad; no sub-bass
 - [ ] Zero clipped samples, peak ≤ 0.89, fades in/out
 - [ ] Integrated loudness and true peak measured and reported
-- [ ] Muxed with `-ar 48000` and `loudnorm` (not a raw copy of 44.1 kHz audio)
+- [ ] Placed as an `<audio id>` in the composition, not muxed into a render
 - [ ] Told the user it is synthesised and that nobody has judged it by ear

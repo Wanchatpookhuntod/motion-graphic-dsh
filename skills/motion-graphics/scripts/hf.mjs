@@ -4,10 +4,12 @@
  *
  *   node "<skill directory>/scripts/hf.mjs" <command> [options]
  *
- * Run it inside the project directory. It keeps every cache, npm download and
- * temporary file inside `<project>/.hf-cache` (a DSH shell sandbox can write the
- * workspace but not the home folder), turns Chrome's sandbox off, and delegates
- * to the HyperFrames CLI launcher bundled in the sibling `hyperframes` skill.
+ * Run it inside the project directory. Caches, npm downloads and temporary files
+ * go to one per-user folder shared by every project (`<tools>/cache`, the same
+ * one setup.mjs pre-warms); when a sandbox cannot write there it falls back to
+ * `<project>/.hf-cache`. It turns Chrome's sandbox off. The first call downloads
+ * the pinned CLI through the bundled `hyperframes` launcher (npx); later calls
+ * start that installed CLI directly with node.
  *
  * FFmpeg is checked before a command that needs it (`render`, `snapshot`,
  * `beats`). When it is missing, the launcher asks once and installs it on the
@@ -23,8 +25,8 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -37,9 +39,46 @@ const FFMPEG_COMMANDS = new Set(['render', 'snapshot', 'beats'])
 /** Launcher-owned flags; stripped before the CLI sees them. */
 const OWN_FLAGS = new Set(['--install-ffmpeg', '--no-install-ffmpeg'])
 
+/** Same per-user root setup.mjs and ensure-ffmpeg.mjs use. */
+function toolsRoot() {
+  if (process.env.MOTION_GRAPHICS_TOOLS_DIR) return process.env.MOTION_GRAPHICS_TOOLS_DIR
+  if (process.platform === 'win32')
+    return join(process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local'), 'motion-graphics')
+  if (process.platform === 'darwin') return join(homedir(), 'Library', 'Application Support', 'motion-graphics')
+  return join(process.env.XDG_DATA_HOME || join(homedir(), '.local', 'share'), 'motion-graphics')
+}
+
+/** True when the directory exists (or can be made) and accepts a file. */
+function writable(directory) {
+  try {
+    mkdirSync(directory, { recursive: true })
+    const probe = join(directory, `.probe-${process.pid}`)
+    writeFileSync(probe, '')
+    rmSync(probe, { force: true })
+    return true
+  } catch {
+    return false
+  }
+}
+
 function pickCacheRoot() {
   const explicit = process.env.HF_CACHE_DIR
   if (explicit) return resolve(explicit)
+  // One cache for every project: the CLI and Chrome are downloaded once per
+  // machine (setup.mjs pre-warms this same folder). A sandbox that cannot write
+  // outside the workspace falls through to the per-project cache below.
+  const shared = join(toolsRoot(), 'cache')
+  if (writable(shared)) return shared
+  // Sandboxed: reuse a cache an earlier project left in this folder or a parent
+  // (the workspace root) before starting a new download in the project.
+  let folder = project
+  for (let depth = 0; depth < 4; depth += 1) {
+    const candidate = join(folder, '.hf-cache')
+    if (existsSync(join(candidate, 'npm', '_npx')) && writable(candidate)) return candidate
+    const parent = dirname(folder)
+    if (parent === folder) break
+    folder = parent
+  }
   const preferred = join(project, '.hf-cache')
   try {
     mkdirSync(preferred, { recursive: true })
@@ -129,8 +168,50 @@ function explainMissing() {
   console.error('     HYPERFRAMES_FFMPEG_PATH=/path/to/ffmpeg HYPERFRAMES_FFPROBE_PATH=/path/to/ffprobe')
 }
 
+/** The CLI release pinned by the bundle's plugin.json, if any. */
+function pinnedVersion() {
+  try {
+    const manifest = JSON.parse(readFileSync(join(here, '..', '..', '..', 'plugin.json'), 'utf8'))
+    return manifest.name === 'hyperframes' ? manifest.version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * The pinned CLI as npx left it in this cache, so later calls start it with
+ * plain `node` instead of paying for an npx resolution every time.
+ */
+function installedCli(version) {
+  if (!version) return undefined
+  const npxRoot = join(env.npm_config_cache, '_npx')
+  let entries
+  try {
+    entries = readdirSync(npxRoot)
+  } catch {
+    return undefined
+  }
+  for (const entry of entries) {
+    const pkgDir = join(npxRoot, entry, 'node_modules', 'hyperframes')
+    try {
+      const pkg = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf8'))
+      if (pkg.version !== version) continue
+      const bin = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.hyperframes
+      if (!bin) continue
+      const script = join(pkgDir, bin)
+      if (existsSync(script)) return script
+    } catch {
+      // Not this folder.
+    }
+  }
+  return undefined
+}
+
 /** Resolve FFmpeg for this run, installing it once when the user agrees. */
 async function prepareFfmpeg(command, wantsInstall, refusesInstall) {
+  // Commands that never touch FFmpeg skip the probe (two process starts).
+  if (!FFMPEG_COMMANDS.has(command) && command !== 'doctor' && !wantsInstall) return true
+  if (env.HYPERFRAMES_FFMPEG_PATH && env.HYPERFRAMES_FFPROBE_PATH && !wantsInstall) return true
   let info = inspectFfmpeg()
   if (info.found) {
     if (!env.HYPERFRAMES_FFMPEG_PATH) env.HYPERFRAMES_FFMPEG_PATH = info.ffmpeg
@@ -177,8 +258,28 @@ async function main() {
 
   if (!(await prepareFfmpeg(command, wantsInstall, refusesInstall))) return 1
 
+  const version = pinnedVersion()
+  const direct = process.env.HF_CLI ? undefined : installedCli(version)
   let result
-  if (process.env.HF_CLI) {
+  if (direct) {
+    if (command === 'skills') {
+      console.error('Bundled skills are release-managed; update them through the plugin manager.')
+      return 1
+    }
+    result = spawnSync(process.execPath, [direct, ...args], {
+      cwd: project,
+      env: {
+        ...env,
+        HYPERFRAMES_SKIP_SKILLS: '1',
+        HYPERFRAMES_SKILL_PKG_VERSION: version,
+        HYPERFRAMES_PLUGIN_VERSION: version,
+        HYPERFRAMES_NO_UPDATE_CHECK: '1',
+        HYPERFRAMES_PLUGIN_CWD: project,
+      },
+      stdio: 'inherit',
+      windowsHide: true,
+    })
+  } else if (process.env.HF_CLI) {
     result = spawnSync(process.execPath, [resolve(process.env.HF_CLI), ...args], {
       cwd: project,
       env,

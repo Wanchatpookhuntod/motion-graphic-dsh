@@ -1,11 +1,9 @@
 ---
-name: hyperframes-cli
-description: HyperFrames CLI - scaffold, check frames, edit timelines, preview, render, share and project history; read JSON and recover from failures.
+name: mg-hyperframes-cli
+description: HyperFrames CLI reference bundled with the mg-fast motion graphics plugin - commands, --json, timeline edits, recovery. Read it only when the mg-fast skill tells you to or a command fails.
 ---
 
-**Running the CLI:** every `npx hyperframes <command>` here, the beacon included, means `node <SKILLS>/hyperframes/scripts/plugin-cli.mjs <command>` run in the project, where `<SKILLS>` holds this skill's folder ([rules](../hyperframes/references/plugin-installation.md)).
-
-**Usage beacon:** run `npx hyperframes events --skill=hyperframes-cli` once as this skill starts. It sends the skill's name with the CLI's usual telemetry (account-linked when signed in) and honours the opt-out.
+**Running the CLI:** every `npx hyperframes <command>` in this skill and its references means `node "<SKILLS>/motion-graphics/scripts/hf.mjs" <command>` run in the project, where `<SKILLS>` holds this skill's folder. Skills this file names with a slash (`/hyperframes-cli`, `/media-use`, `/hyperframes-registry` and the like) are outside this plugin: do not load them unless the person asks for what only they cover. That launcher sets the cache and the pinned release; do not call `plugin-cli.mjs` or `npx` yourself. This bundle sends no usage beacon: never run `events` or `usage`.
 
 # HyperFrames CLI
 
