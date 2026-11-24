@@ -1,9 +1,9 @@
 # Music beds (composing in code)
 
 Use this when a clip needs background music and there is no licensed track: the bed is
-synthesised from code, so it is royalty-free, deterministic and re-makeable. `scripts/make_music.py`
-is the reference implementation; it needs only Python 3 + NumPy (the WAV is written with the
-standard-library `wave` module). ffmpeg is used **only** for loudness measurement and muxing.
+synthesised from code, so it is royalty-free, deterministic and re-makeable. `scripts/make_music.mjs`
+is the reference implementation; it needs only Node.js 22+ (it writes the WAV itself and carries
+its own FFT). ffmpeg is used **only** for loudness measurement and muxing.
 
 Proven on: the 30 s title `เมืองไทย เมืองอาหาร` (88 BPM, D major, warm mood, `-16 LUFS`,
 true peak `-1.0 dBTP`) — the same recipe at 7 s also worked.
@@ -28,7 +28,7 @@ true peak `-1.0 dBTP`) — the same recipe at 7 s also worked.
    | calm / institutional / finance / health | `calm` | 72 | C, F, or B♭ |
    | playful, education for kids, social | `bright` | 104 | G or A |
 
-3. **Generate:** `python3 scripts/make_music.py music.wav --dur 30 --mood warm --key D`
+3. **Generate:** `node scripts/make_music.mjs music.wav --dur 30 --mood warm --key D`
 4. **Measure** (never trust it blind): `ffmpeg -i music.wav -af ebur128=peak=true -f null -`
    and `astats=metadata=1:reset=0`. The raw render typically lands -14 to -17 LUFS; that is
    fine, the loudnorm pass in step 5 sets the delivery level. Targets for the delivered mix:
@@ -60,7 +60,7 @@ the motif cycle (four motifs, so it does not sound copy-pasted).
 
 ## Why the levels are measured, not guessed
 
-An agent cannot listen, so mixing by "feel" is a guess. `make_music.py` renders each layer
+An agent cannot listen, so mixing by "feel" is a guess. `make_music.mjs` renders each layer
 separately, measures its RMS and scales it to a target before summing:
 
 | Layer | RMS target |

@@ -5,7 +5,7 @@ description: Create a motion graphic end to end — spoken script, drawn SVG vis
 
 # Motion graphics
 
-One motion graphic = **บท → ภาพ → เสียง → คอมโพสิชัน → ตรวจ → preview**. This plugin ships the whole chain: the writing guide, the drawing guide, the music recipe, the HyperFrames contract and the CLI launcher. A machine with only this plugin can make the video; nothing needs to be installed in advance except Node.js 22+ and FFmpeg (and Python 3 + NumPy for the script tools and the music bed).
+One motion graphic = **บท → ภาพ → เสียง → คอมโพสิชัน → ตรวจ → preview**. This plugin ships the whole chain: the writing guide, the drawing guide, the music recipe, the HyperFrames contract and the CLI launcher. A machine with only this plugin can make the video; nothing needs to be installed in advance except Node.js 22+ — FFmpeg is installed on request the first time a render or a snapshot needs it, and the script and music tools are plain Node.
 
 ## กฎเหล็ก (do not break these)
 
@@ -27,14 +27,24 @@ Run it **in the project directory**. `<this skill's directory>` is the resource 
 - First run downloads the CLI and a headless Chrome — needs network. Check the machine once per machine with `... hf.mjs doctor` before the first render.
 - `--json` on most commands; a failure prints `✗ …`, a `Fix:` line and exits non-zero.
 
+### FFmpeg — checked and installed for you
+
+`render`, `snapshot` and `beats` cannot produce output without FFmpeg, so the launcher checks before it delegates:
+
+- **present** → its paths are exported as `HYPERFRAMES_FFMPEG_PATH` / `HYPERFRAMES_FFPROBE_PATH` and the command runs;
+- **missing** → it asks once, then installs on the machine (`scripts/ensure-ffmpeg.mjs`): `winget`/`brew`/`apt-get` when available, otherwise a per-user static build with no admin rights. `--install-ffmpeg` answers yes up front; `--no-install-ffmpeg` refuses and prints the manual path. Non-interactive runs without either flag stop with a `Fix:` line instead of installing silently.
+- The install lives outside the project (`%LOCALAPPDATA%\motion-graphics\ffmpeg\bin` on Windows, `~/Library/Application Support/motion-graphics/ffmpeg/bin` on macOS, `~/.local/share/motion-graphics/ffmpeg/bin` on Linux), survives cache clears, and can be moved with `MOTION_GRAPHICS_TOOLS_DIR`.
+- On a machine that has never run this bundle, run `node "<this skill's directory>/scripts/setup.mjs" --install` once: it checks Node, installs FFmpeg, and pre-downloads the CLI and a headless Chrome into one shared cache. `--json` reports without changing anything; `--python` is optional and never required.
+- Check what the machine has at any time with `node "<skill>/scripts/ensure-ffmpeg.mjs" --check`; install ahead of the first render with `... hf.mjs doctor --install-ffmpeg` (the flag installs, then `doctor` reports the result). Never work around a missing encoder by weakening the composition.
+
 ## Pipeline
 
 | # | Phase | Output | Read / run |
 |---|---|---|---|
 | 1 | Brief | 6 answers, one round | this file |
-| 2 | Script | `script.txt` + `script.json` + timing table | `references/script-style.md`, `scripts/txt_to_json.py` |
+| 2 | Script | `script.txt` + `script.json` + timing table | `references/script-style.md`, `scripts/txt_to_json.mjs` |
 | 3 | Picture plan | scene list `Sxx — purpose — seconds`; `SPEC.md` for a film | `references/art.md` |
-| 4 | Music | `music.wav` (only if the clip needs a bed) | `references/music.md`, `scripts/make_music.py` |
+| 4 | Music | `music.wav` (only if the clip needs a bed) | `references/music.md`, `scripts/make_music.mjs` |
 | 5 | Build | HyperFrames project under the workspace | `hyperframes` + `hyperframes-cli` skills |
 | 6 | Check | `check --json` clean, snapshots looked at | `... hf.mjs check`, `snapshot` |
 | 7 | Preview | Studio URL in the reply, then wait | `... hf.mjs preview --background` + `--status` |
@@ -49,7 +59,7 @@ Topic, audience, target length, language, aspect ratio and where the clip sits i
 Read `references/script-style.md` and follow its lesson shape, voice and line rules. The output is two files with the same content: `script.txt` (human) and `script.json` (voice/visual pipeline).
 
 ```sh
-python3 "<this skill's directory>/scripts/txt_to_json.py" script.txt script.json
+node "<this skill's directory>/scripts/txt_to_json.mjs" script.txt script.json
 ```
 
 It prints characters, estimated seconds per scene and lines that are too long — measure, don't guess (≈ 10.2 Thai characters per second, ≈ 2.5 English words per second). For a clip that is only a title card or a data piece, skip the lesson shape and write the on-screen copy as variables instead.
@@ -63,7 +73,7 @@ Turn each line into one visual. Write the scene list first (`Sxx name — purpos
 Only when the clip needs one: **compose it, never download a track.**
 
 ```sh
-python3 "<this skill's directory>/scripts/make_music.py" music.wav --dur <clip seconds> --mood warm|calm|bright --key D
+node "<this skill's directory>/scripts/make_music.mjs" music.wav --dur <clip seconds> --mood warm|calm|bright --key D
 ```
 
 Balance by measured RMS, not by ear, and mux with `loudnorm=I=-16:TP=-2:LRA=9`. Method, layer targets and the QA you can do without hearing it: `references/music.md`.
@@ -116,14 +126,17 @@ Use `--quality draft` while iterating. After the render, confirm the file is non
 | `references/script-style.md` | Lesson shape, scene recipes, line rules, voice, writing for the picture, checklist. |
 | `references/art.md` | How to draw the visuals: silhouette-first, the SVG rules, five-pass drawing, composition numbers, palettes, the 3-image QA. Read before drawing anything. |
 | `references/music.md` | Music beds: when to compose instead of licensing, the synthesis recipe, level targets, syncing accents, QA without hearing it. |
-| `scripts/hf.mjs` | Portable HyperFrames CLI launcher (caches inside the project). |
-| `scripts/txt_to_json.py` | `script.txt` → `script.json` + timing report + long-line warnings. Requires NumPy. |
-| `scripts/make_music.py` | `music.wav` from duration / mood / key / BPM — deterministic, NumPy only. |
+| `scripts/hf.mjs` | Portable HyperFrames CLI launcher (caches inside the project, checks FFmpeg first). |
+| `scripts/ensure-ffmpeg.mjs` | Finds FFmpeg/FFprobe, or installs them on the machine (package manager, else per-user static build). |
+| `scripts/setup.mjs` | One-command preparation of a new machine: Node check, FFmpeg, HyperFrames + Chrome pre-download, optional Python. |
+| `scripts/txt_to_json.mjs` | `script.txt` → `script.json` + timing report + long-line warnings. Pure Node. |
+| `scripts/make_music.mjs` | `music.wav` from duration / mood / key / BPM — deterministic, pure Node (own FFT, no samples). |
+| `scripts/txt_to_json.py`, `scripts/make_music.py` | Legacy Python/NumPy originals, kept for reference only; the `.mjs` versions are the supported path. |
 | `assets/script_template.txt` | Skeleton with the standard scene order and prompts. |
 
 ## Working with a machine that is not yours
 
-Everything the plugin needs is inside the plugin; only the project folder holds state. Caches, npm downloads, Chrome, history and snapshots stay in `<project>/.hf-cache` and `<project>/.hyperframes`, so a project folder can be copied to another machine and opened there. If the machine has no `python3` with NumPy, use the bundled Python returned by `load_workspace_dependencies` instead. If `doctor` reports FFmpeg missing, say so and name the install command for the platform (macOS: `brew install ffmpeg`, Windows: `winget install Gyan.FFmpeg`, Debian/Ubuntu: `sudo apt install ffmpeg`) instead of rendering a broken file.
+Everything the plugin needs is inside the plugin; only the project folder holds state. Caches, npm downloads, Chrome, history and snapshots stay in `<project>/.hf-cache` and `<project>/.hyperframes`, so a project folder can be copied to another machine and opened there. On a fresh machine run the bundle installer (`install.ps1` on Windows, `install.sh` on macOS/Linux) — it adds Node.js if missing, FFmpeg, the CLI and Chrome, and Python — or run `node "<skill>/scripts/setup.mjs" --install --all` once the machine already has Node. Every helper is Node, so the bundle itself needs only Node.js 22+. If FFmpeg is missing, run `... hf.mjs doctor --install-ffmpeg` (it asks before installing); when the machine cannot download or the user declines, say so and name the install command for the platform (macOS: `brew install ffmpeg`, Windows: `winget install Gyan.FFmpeg`, Debian/Ubuntu: `sudo apt install ffmpeg`) instead of rendering a broken file.
 
 ## script.txt format
 

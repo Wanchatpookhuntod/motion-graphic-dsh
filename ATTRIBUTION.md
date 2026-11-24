@@ -40,5 +40,7 @@ here is descriptive only.
 the Host plugin (`index.js`), locale files, icon and detail image are the
 owner's own work, published in this repository. No separate license is declared
 for them; all rights are reserved by the owner. `references/script-style.md`,
-`references/art.md`, `references/music.md`, `scripts/txt_to_json.py` and
-`scripts/make_music.py` come from the owner's own `script-writing` skill.
+`references/art.md`, `references/music.md`, `scripts/txt_to_json.mjs` and
+`scripts/make_music.mjs` come from the owner's own `script-writing` skill; the
+`.mjs` tools are Node ports of the original Python/NumPy scripts, which remain in
+`scripts/` for reference.
